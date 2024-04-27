@@ -92,6 +92,83 @@ def paired_random_crop(img_gts, img_lqs, gt_patch_size, scale, gt_path):
     return img_gts, img_lqs
 
 
+def paired_random_crop_with_seg(img_gts, img_lqs, img_segs, patch_size, scale, gt_path):
+    """Paired random crop.
+
+    It crops lists of lq, gt, and segmentation images with corresponding locations.
+
+    Args:
+        img_gts (list[ndarray] | ndarray): GT images. Note that all images
+            should have the same shape. If the input is an ndarray, it will
+            be transformed to a list containing itself.
+        img_lqs (list[ndarray] | ndarray): LQ images. Note that all images
+            should have the same shape. If the input is an ndarray, it will
+            be transformed to a list containing itself.
+        img_segs (list[ndarray] | ndarray): Segmentation images. Note that all images
+            should have the same shape. If the input is an ndarray, it will
+            be transformed to a list containing itself.
+        patch_size (int): Patch size for both LQ and segmentation images.
+        scale (int): Scale factor.
+        gt_path (str): Path to ground-truth.
+
+    Returns:
+        tuple: Tuple containing GT images, LQ images, and segmentation images. 
+            Each element can be either a list of arrays or a single array.
+    """
+
+    if not isinstance(img_gts, list):
+        img_gts = [img_gts]
+    if not isinstance(img_lqs, list):
+        img_lqs = [img_lqs]
+    if not isinstance(img_segs, list):
+        img_segs = [img_segs]
+
+    h_lq, w_lq, _ = img_lqs[0].shape
+    h_gt, w_gt, _ = img_gts[0].shape
+
+    if h_gt != h_lq * scale or w_gt != w_lq * scale:
+        raise ValueError(
+            f'Scale mismatches. GT ({h_gt}, {w_gt}) is not {scale}x ',
+            f'multiplication of LQ ({h_lq}, {w_lq}).')
+    if h_lq < patch_size or w_lq < patch_size:
+        raise ValueError(f'LQ ({h_lq}, {w_lq}) is smaller than patch size '
+                         f'({patch_size}, {patch_size}). '
+                         f'Please remove {gt_path}.')
+
+    # randomly choose top and left coordinates for lq patch
+    top = random.randint(0, h_lq - patch_size)
+    left = random.randint(0, w_lq - patch_size)
+
+    # crop lq patch
+    img_lqs = [
+        v[top:top + patch_size, left:left + patch_size, ...]
+        for v in img_lqs
+    ]
+
+    # crop corresponding gt patch
+    top_gt, left_gt = int(top * scale), int(left * scale)
+    img_gts = [
+        v[top_gt:top_gt + patch_size, left_gt:left_gt + patch_size, ...]
+        for v in img_gts
+    ]
+
+    # crop corresponding segmentation patch
+    img_segs = [
+        v[top:top + patch_size, left:left + patch_size, ...]
+        for v in img_segs
+    ]
+
+    # Convert single element lists to arrays
+    if len(img_gts) == 1:
+        img_gts = img_gts[0]
+    if len(img_lqs) == 1:
+        img_lqs = img_lqs[0]
+    if len(img_segs) == 1:
+        img_segs = img_segs[0]
+
+    return img_gts, img_lqs, img_segs
+    
+
 def paired_random_crop_hw(img_gts, img_lqs, gt_patch_size_h, gt_patch_size_w, scale, gt_path):
     """Paired random crop.
 

@@ -254,6 +254,70 @@ def paired_paths_from_folder(folders, keys, filename_tmpl):
             dict([(f'{input_key}_path', input_path),
                   (f'{gt_key}_path', gt_path)]))
     return paths
+    
+
+def paired_seg_paths_from_folder(folders, keys, filename_tmpl):
+    """Generate paired paths from folders.
+
+    Args:
+        folders (list[str]): A list of folder path. The order of list should
+            be [input_folder, gt_folder].
+        keys (list[str]): A list of keys identifying folders. The order should
+            be in consistent with folders, e.g., ['lq', 'gt'].
+        filename_tmpl (str): Template for each filename. Note that the
+            template excludes the file extension. Usually the filename_tmpl is
+            for files in the input folder.
+
+    Returns:
+        list[str]: Returned path list.
+    """
+    assert len(folders) == 3, (
+        'The len of folders should be 3 with [input_folder, gt_folder, seg_folder]. '
+        f'But got {len(folders)}')
+    assert len(keys) == 3, (
+        'The len of keys should be 3 with [input_key, gt_key, seg_key]. '
+        f'But got {len(keys)}')
+    input_folder, gt_folder, seg_folder = folders
+    input_key, gt_key, seg_key = keys
+
+    input_paths = list(scandir(input_folder))
+    gt_paths = list(scandir(gt_folder))
+    seg_paths = list(scandir(seg_folder))
+    
+    assert len(input_paths) == len(gt_paths), (
+        f'{input_key} and {gt_key} datasets have different number of images: '
+        f'{len(input_paths)}, {len(gt_paths)}.')
+
+    assert len(input_paths) == len(seg_paths), (
+        f'{input_key} and {seg_key} datasets have different number of images: '
+        f'{len(input_paths)}, {len(seg_paths)}.')
+
+    paths = []
+    for idx in range(len(gt_paths)):
+        gt_path = gt_paths[idx]
+        basename, ext = osp.splitext(osp.basename(gt_path))
+
+        input_path = input_paths[idx]
+        basename_input, ext_input = osp.splitext(osp.basename(input_path))
+        input_name = f'{filename_tmpl.format(basename)}{ext_input}'
+        input_path = osp.join(input_folder, input_name)
+        assert input_name in input_paths, (f'{input_name} is not in '
+                                           f'{input_key}_paths.')
+
+        seg_path = seg_paths[idx]
+        basename_seg, ext_seg = osp.splitext(osp.basename(seg_path))
+        seg_name = f'{filename_tmpl.format(basename)}{ext_input}'
+        seg_path = osp.join(seg_folder, seg_name)
+
+        assert seg_name in seg_paths, (f'{seg_name} is not in '
+                                           f'{seg_key}_paths.')
+
+        gt_path = osp.join(gt_folder, gt_path)
+        paths.append(
+            dict([(f'{input_key}_path', input_path),
+                  (f'{gt_key}_path', gt_path),
+                  (f'{seg_key}_path', seg_path)]))
+    return paths
 
 
 def paths_from_folder(folder):
