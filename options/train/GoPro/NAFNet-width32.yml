@@ -6,21 +6,22 @@
 # ------------------------------------------------------------------------
 # general settings
 name: NAFNet-GoPro-width32
-model_type: ImageRestorationModel
+model_type: ImageSegRestorationModel
 scale: 1
-num_gpu: 8
+num_gpu: 2
 manual_seed: 42
 
 datasets:
   train:
     name: gopro-train
-    type: PairedImageDataset
-    dataroot_gt: ./datasets/GoPro/train/sharp_crops.lmdb
-    dataroot_lq: ./datasets/GoPro/train/blur_crops.lmdb
+    type: PairedImageSegDataset
+    dataroot_gt: ./datasets/GoPro/train/sharp_crops
+    dataroot_lq: ./datasets/GoPro/train/blur_crops
+    dataroot_seg: ./datasets/GoPro/train/blur_crops
 
     filename_tmpl: '{}'
     io_backend:
-      type: lmdb
+      type: disk
 
     gt_size: 256
     use_flip: true
@@ -35,11 +36,12 @@ datasets:
 
   val:
     name: gopro-test
-    type: PairedImageDataset
-    dataroot_gt: ./datasets/GoPro/test/target.lmdb
-    dataroot_lq: ./datasets/GoPro/test/input.lmdb
+    type: PairedImageSegDataset
+    dataroot_gt: ./datasets/GoPro/test/target
+    dataroot_lq: ./datasets/GoPro/test/input
+    dataroot_seg: ./datasets/GoPro/test/input
     io_backend:
-      type: lmdb
+      type: disk
 
 
 network_g:
