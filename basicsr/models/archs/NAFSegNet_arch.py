@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from basicsr.models.archs.arch_util import LayerNorm2d
-from basicsr.models.archs.local_arch import Local_Base
+from basicsr.models.archs.localseg_arch import LocalSeg_Base
 
 class SimpleGate(nn.Module):
     def forward(self, x):
@@ -85,7 +85,7 @@ class NAFSegNet(nn.Module):
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
 
-        self.intro = nn.Conv2d(in_channels=img_channel, out_channels=width, kernel_size=3, padding=1, stride=1, groups=1,
+        self.intro = nn.Conv2d(in_channels=img_channel*2, out_channels=width, kernel_size=3, padding=1, stride=1, groups=1,
                               bias=True)
         self.ending = nn.Conv2d(in_channels=width, out_channels=img_channel, kernel_size=3, padding=1, stride=1, groups=1,
                               bias=True)
@@ -129,11 +129,16 @@ class NAFSegNet(nn.Module):
 
         self.padder_size = 2 ** len(self.encoders)
 
-    def forward(self, inp):
+    def forward(self, inp, seg):
+        # print(seg.shape)
         B, C, H, W = inp.shape
         inp = self.check_image_size(inp)
 
-        x = self.intro(inp)
+        # x = self.intro(inp)
+
+        x = torch.cat([inp, seg], dim=1)
+
+        x = self.intro(x)
 
         encs = []
 
@@ -161,9 +166,9 @@ class NAFSegNet(nn.Module):
         x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h))
         return x
 
-class NAFSegNetLocal(Local_Base, NAFSegNet):
+class NAFSegNetLocal(LocalSeg_Base, NAFSegNet):
     def __init__(self, *args, train_size=(1, 3, 256, 256), fast_imp=False, **kwargs):
-        Local_Base.__init__(self)
+        LocalSeg_Base.__init__(self)
         NAFSegNet.__init__(self, *args, **kwargs)
 
         N, C, H, W = train_size
