@@ -131,11 +131,14 @@ class NAFNet(nn.Module):
         self.padder_size = 2 ** len(self.encoders)
 
     def forward(self, inp, seg):
-        print(seg.shape)
         B, C, H, W = inp.shape
         inp = self.check_image_size(inp)
+        seg = self.check_image_size(seg)
 
-        x = self.intro(inp)
+        
+        x = torch.cat([inp, seg], dim=1)
+
+        x = self.intro(x)
 
         encs = []
 
@@ -146,7 +149,7 @@ class NAFNet(nn.Module):
 
         x = self.middle_blks(x)
 
-        for decoder, up, enc_skip in zip(self.decoders, self.ups, encs[::-1]):
+        for decoder, up, enc_skip in zip(self.decoders, self.ups, reversed(encs)):
             x = up(x)
             x = x + enc_skip
             x = decoder(x)
