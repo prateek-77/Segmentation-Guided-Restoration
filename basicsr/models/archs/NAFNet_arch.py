@@ -17,8 +17,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from basicsr.models.archs.arch_util import LayerNorm2d
-from basicsr.models.archs.localseg_arch import LocalSeg_Base
-
+from basicsr.models.archs.local_arch import Local_Base
 
 class SimpleGate(nn.Module):
     def forward(self, x):
@@ -130,15 +129,11 @@ class NAFNet(nn.Module):
 
         self.padder_size = 2 ** len(self.encoders)
 
-    def forward(self, inp, seg):
+    def forward(self, inp):
         B, C, H, W = inp.shape
         inp = self.check_image_size(inp)
-        seg = self.check_image_size(seg)
 
-        
-        x = torch.cat([inp, seg], dim=1)
-
-        x = self.intro(x)
+        x = self.intro(inp)
 
         encs = []
 
@@ -149,7 +144,7 @@ class NAFNet(nn.Module):
 
         x = self.middle_blks(x)
 
-        for decoder, up, enc_skip in zip(self.decoders, self.ups, reversed(encs)):
+        for decoder, up, enc_skip in zip(self.decoders, self.ups, encs[::-1]):
             x = up(x)
             x = x + enc_skip
             x = decoder(x)
@@ -166,9 +161,9 @@ class NAFNet(nn.Module):
         x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h))
         return x
 
-class NAFNetLocal(LocalSeg_Base, NAFNet):
+class NAFNetLocal(Local_Base, NAFNet):
     def __init__(self, *args, train_size=(1, 3, 256, 256), fast_imp=False, **kwargs):
-        LocalSeg_Base.__init__(self)
+        Local_Base.__init__(self)
         NAFNet.__init__(self, *args, **kwargs)
 
         N, C, H, W = train_size
