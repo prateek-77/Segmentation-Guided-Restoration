@@ -253,7 +253,7 @@ class ImageSegRestorationModel(BaseModel):
                 j = i + m
                 if j >= n:
                     j = n
-                pred = self.net_g(self.lq[i:j])
+                pred = self.net_g(self.lq[i:j], self.seg[i:j])
                 if isinstance(pred, list):
                     pred = pred[-1]
                 outs.append(pred.detach().cpu())
@@ -301,6 +301,7 @@ class ImageSegRestorationModel(BaseModel):
             # tentative for out of GPU memory
             del self.lq
             del self.output
+            del self.seg
             torch.cuda.empty_cache()
 
             if save_img:

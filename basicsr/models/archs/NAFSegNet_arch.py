@@ -85,10 +85,13 @@ class NAFSegNet(nn.Module):
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
 
-        self.intro = nn.Conv2d(in_channels=img_channel*2, out_channels=width, kernel_size=3, padding=1, stride=1, groups=1,
+        self.intro = nn.Conv2d(in_channels=img_channel, out_channels=width, kernel_size=3, padding=1, stride=1, groups=1,
                               bias=True)
         self.ending = nn.Conv2d(in_channels=width, out_channels=img_channel, kernel_size=3, padding=1, stride=1, groups=1,
                               bias=True)
+        
+        self.conv_seg = nn.Conv2d(in_channels=img_channel, out_channels=width, kernel_size=3)
+        self.conv_seg.weight.data = torch.nn.Parameter(torch.zeros_like(self.conv_seg.weight))
 
         self.encoders = nn.ModuleList()
         self.decoders = nn.ModuleList()
@@ -136,9 +139,10 @@ class NAFSegNet(nn.Module):
 
         # x = self.intro(inp)
 
-        x = torch.cat([inp, seg], dim=1)
+        # x = torch.cat([inp, seg], dim=1)
+        seg = self.conv_seg(seg)
 
-        x = self.intro(x)
+        x = self.intro(inp)
 
         encs = []
 
@@ -152,6 +156,12 @@ class NAFSegNet(nn.Module):
         for decoder, up, enc_skip in zip(self.decoders, self.ups, encs[::-1]):
             x = up(x)
             x = x + enc_skip
+
+            spatial_size = x.shape[2:]
+            seg_ = nn.functional.interpolate(x, size = spatial_size)
+
+            x = x + 0.1 * seg_
+
             x = decoder(x)
 
         x = self.ending(x)
