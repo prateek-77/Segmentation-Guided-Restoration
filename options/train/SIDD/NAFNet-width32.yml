@@ -6,21 +6,22 @@
 # ------------------------------------------------------------------------
 # general settings
 name: NAFNet-SIDD-width32
-model_type: ImageRestorationModel
+model_type: ImageSegRestorationModel
 scale: 1
-num_gpu: 8
+num_gpu: 4
 manual_seed: 10
 
 datasets:
   train:
     name: SIDD
-    type: PairedImageDataset
-    dataroot_gt: ./datasets/SIDD/train/gt_crops.lmdb
-    dataroot_lq: ./datasets/SIDD/train/input_crops.lmdb
+    type: PairedImageSegDataset
+    dataroot_gt: ./SIDD/train/sampled_gt_crops2
+    dataroot_lq: ./SIDD/train/sampled_input_crops2
+    dataroot_seg: ./SIDD/train/sampled_seg_crops2
 
     filename_tmpl: '{}'
     io_backend:
-      type: lmdb
+      type: disk
 
     gt_size: 256
     use_flip: false
@@ -28,22 +29,23 @@ datasets:
 
     # data loader
     use_shuffle: true
-    num_worker_per_gpu: 4
-    batch_size_per_gpu: 4
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 8
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
   val:
     name: SIDD_val
-    type: PairedImageDataset
-    dataroot_gt: ./datasets/SIDD/val/gt_crops.lmdb
-    dataroot_lq: ./datasets/SIDD/val/input_crops.lmdb
+    type: PairedImageSegDataset
+    dataroot_gt: ./SIDD/val/SIDD/target_crops
+    dataroot_lq: ./SIDD/val/SIDD/input_crops
+    dataroot_seg: ./SIDD/val/SIDD/seg_crops
     io_backend:
-      type: lmdb
+      type: disk
 
 
 network_g:
-  type: NAFNet
+  type: NAFSeg2Net
   width: 32
   enc_blk_nums: [2, 2, 4, 8]
   middle_blk_num: 12
@@ -54,7 +56,7 @@ path:
   pretrain_network_g: ~
   strict_load_g: true
   resume_state: ~
-
+  
 # training settings
 train:
   optim_g:
@@ -65,10 +67,10 @@ train:
 
   scheduler:
     type: TrueCosineAnnealingLR
-    T_max: 200000
+    T_max: 100000
     eta_min: !!float 1e-7
 
-  total_iter: 200000
+  total_iter: 100000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -79,7 +81,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 2e4
+  val_freq: !!float 1e4
   save_img: false
   use_image: false
 
